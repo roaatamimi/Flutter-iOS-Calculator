@@ -5,7 +5,7 @@ typedef PreviewListener = void Function(String preview);
 
 class Solver {
   final _masterSolver = MasterSolver();
-  PreviewListener _listener;
+  PreviewListener? _listener;
 
   void addTerm(double term) {
     _masterSolver.addTerm(term);
@@ -45,7 +45,7 @@ class Solver {
 
   void _updatePreview() {
     if (_listener != null) {
-      _listener(_format(_masterSolver.preview()));
+      _listener!(_format(_masterSolver.preview()));
     }
   }
 
@@ -55,15 +55,15 @@ class Solver {
 }
 
 class MasterSolver {
-  double firstTerm;
-  Operation firstOperation;
-  double secondTerm;
-  Operation secondOperation;
+  double? firstTerm;
+  Operation? firstOperation;
+  double? secondTerm;
+  Operation? secondOperation;
   bool needsSlave = false;
-  SlaveSolver slaveSolver;
+  SlaveSolver? slaveSolver;
   bool willRemoveSlave = false;
-  double tempPercentage;
-  double rate;
+  double? tempPercentage;
+  double? rate;
   bool resultRemembered = false;
 
   void addTerm(double term) {
@@ -92,15 +92,15 @@ class MasterSolver {
     }
     if (slaveSolver == null) {
       if (needsSlave) {
-        slaveSolver = SlaveSolver(secondTerm, secondOperation);
-        slaveSolver.addTerm(term);
+        slaveSolver = SlaveSolver(secondTerm!, secondOperation!);
+        slaveSolver!.addTerm(term);
       } else {
         _reduceMaster(term);
       }
       return;
     }
     if (!willRemoveSlave) {
-      slaveSolver.addTerm(term);
+      slaveSolver!.addTerm(term);
     } else {
       _reduceSlave(term);
       _removeSlave();
@@ -132,7 +132,7 @@ class MasterSolver {
     }
     if (slaveSolver == null) {
       secondOperation = op;
-      if (!firstOperation.hasPriority && secondOperation.hasPriority) {
+      if (!firstOperation!.hasPriority && secondOperation!.hasPriority) {
         needsSlave = true;
       } else {
         needsSlave = false;
@@ -141,11 +141,11 @@ class MasterSolver {
     }
     if (op.hasPriority) {
       willRemoveSlave = false;
-      slaveSolver.addOperation(op);
+      slaveSolver!.addOperation(op);
     } else {
       willRemoveSlave = true;
       secondOperation = op;
-      slaveSolver.removeSpareOperation();
+      slaveSolver!.removeSpareOperation();
     }
   }
 
@@ -154,7 +154,7 @@ class MasterSolver {
       _removeTempPercentage();
     }
     if (resultRemembered) {
-      firstTerm = -firstTerm;
+      firstTerm = -firstTerm!;
       return;
     }
     if (firstTerm == null) {
@@ -162,7 +162,7 @@ class MasterSolver {
       return;
     }
     if (firstOperation == null) {
-      firstTerm = -firstTerm;
+      firstTerm = -firstTerm!;
       return;
     }
     if (secondTerm == null) {
@@ -170,20 +170,20 @@ class MasterSolver {
       return;
     }
     if (secondOperation == null) {
-      secondTerm = -secondTerm;
+      secondTerm = -secondTerm!;
       return;
     }
     if (slaveSolver == null) {
       if (needsSlave) {
-        slaveSolver = SlaveSolver(secondTerm, secondOperation);
-        slaveSolver.addTerm(-0);
+        slaveSolver = SlaveSolver(secondTerm!, secondOperation!);
+        slaveSolver!.addTerm(-0);
       } else {
         addTerm(-0);
       }
       return;
     }
     if (!willRemoveSlave) {
-      slaveSolver.changeSign();
+      slaveSolver!.changeSign();
     } else {
       addTerm(-0);
     }
@@ -192,86 +192,69 @@ class MasterSolver {
   void applyPercentage() {
     if (tempPercentage != null) {
       if (rate != null) {
-        tempPercentage *= rate;
+        tempPercentage = tempPercentage! * rate!;
       } else {
-        tempPercentage /= 100;
+        tempPercentage = tempPercentage! / 100;
       }
       return;
     }
     if (resultRemembered) {
-      firstTerm = firstTerm / 100;
+      firstTerm = firstTerm! / 100;
       return;
     }
     if (firstTerm == null) {
       return;
     }
     if (firstOperation == null) {
-      firstTerm = firstTerm / 100;
+      firstTerm = firstTerm! / 100;
       return;
     }
     if (secondTerm == null) {
-      tempPercentage = _calculatePercentage(firstTerm, firstOperation);
+      tempPercentage = _calculatePercentage(firstTerm!, firstOperation!);
       return;
     }
     if (secondOperation == null) {
-      secondTerm = _calculatePercentage(firstTerm, firstOperation, secondTerm);
+      secondTerm = _calculatePercentage(firstTerm!, firstOperation!, secondTerm);
       return;
     }
     if (slaveSolver == null) {
       if (needsSlave) {
-        tempPercentage = _calculatePercentage(secondTerm, secondOperation);
+        tempPercentage = _calculatePercentage(secondTerm!, secondOperation!);
       } else {
-        if (secondOperation.hasPriority) {
-          final reducedTerm = firstOperation.apply(firstTerm, secondTerm);
-          tempPercentage = _calculatePercentage(reducedTerm, secondOperation);
-          return;
+        if (secondOperation!.hasPriority) {
+          final reducedTerm = firstOperation!.apply(firstTerm!, secondTerm!);
+          tempPercentage = _calculatePercentage(reducedTerm, secondOperation!);
         } else {
-          rate = secondTerm / 100;
-          final reducedTerm = firstOperation.apply(firstTerm, secondTerm);
-          tempPercentage = reducedTerm * rate;
-          return;
+          rate = secondTerm! / 100;
+          final reducedTerm = firstOperation!.apply(firstTerm!, secondTerm!);
+          tempPercentage = reducedTerm * rate!;
         }
       }
       return;
     }
     if (!willRemoveSlave) {
-      slaveSolver.applyPercentage();
+      slaveSolver!.applyPercentage();
     } else {
-      rate = slaveSolver.secondTerm / 100;
-      final reducedTerm =
-          firstOperation.apply(firstTerm, slaveSolver.preview(full: true));
-      tempPercentage = reducedTerm * rate;
+      rate = slaveSolver!.secondTerm! / 100;
+      final reducedTerm = firstOperation!.apply(firstTerm!, slaveSolver!.preview(full: true));
+      tempPercentage = reducedTerm * rate!;
     }
   }
 
   double preview() {
-    if (tempPercentage != null) {
-      return tempPercentage;
-    }
-    if (resultRemembered) {
-      return firstTerm;
-    }
-    if (firstOperation == null) {
-      return firstTerm ?? 0;
-    }
-    if (secondTerm == null) {
-      return firstTerm;
-    }
-    if (secondOperation == null) {
-      return secondTerm;
-    }
+    if (tempPercentage != null) return tempPercentage!;
+    if (resultRemembered) return firstTerm ?? 0;
+    if (firstOperation == null) return firstTerm ?? 0;
+    if (secondTerm == null) return firstTerm!;
+    if (secondOperation == null) return secondTerm!;
     if (slaveSolver == null) {
-      if (needsSlave) {
-        return secondTerm;
-      } else {
-        return firstOperation.apply(firstTerm, secondTerm);
-      }
+      return needsSlave
+          ? secondTerm!
+          : firstOperation!.apply(firstTerm!, secondTerm!);
     }
-    if (!willRemoveSlave) {
-      return slaveSolver.preview();
-    } else {
-      return firstOperation.apply(firstTerm, slaveSolver.preview(full: true));
-    }
+    return !willRemoveSlave
+        ? slaveSolver!.preview()
+        : firstOperation!.apply(firstTerm!, slaveSolver!.preview(full: true));
   }
 
   double result() {
@@ -280,39 +263,38 @@ class MasterSolver {
       return _setAndReturnResult(result);
     }
     if (secondTerm == null) {
-      secondTerm = tempPercentage != null ? tempPercentage : firstTerm;
+      secondTerm = tempPercentage ?? firstTerm;
       _removeTempPercentage();
-      return firstOperation.apply(firstTerm, secondTerm);
+      return firstOperation!.apply(firstTerm!, secondTerm!);
     }
     if (secondOperation == null) {
-      final result = firstOperation.apply(firstTerm, secondTerm);
+      final result = firstOperation!.apply(firstTerm!, secondTerm!);
       return _setAndReturnResult(result);
     }
     if (slaveSolver == null) {
       if (needsSlave) {
-        slaveSolver = SlaveSolver(secondTerm, secondOperation);
-        slaveSolver
-            .addTerm(tempPercentage != null ? tempPercentage : secondTerm);
+        slaveSolver = SlaveSolver(secondTerm!, secondOperation!);
+        slaveSolver!.addTerm(tempPercentage ?? secondTerm!);
         _removeTempPercentage();
-        final result = firstOperation.apply(firstTerm, slaveSolver.result());
+        final result = firstOperation!.apply(firstTerm!, slaveSolver!.result());
         return _setAndReturnResult(result);
       } else {
         _reduceMaster();
-        secondTerm = tempPercentage != null ? tempPercentage : firstTerm;
+        secondTerm = tempPercentage ?? firstTerm;
         _removeTempPercentage();
-        final result = firstOperation.apply(firstTerm, secondTerm);
+        final result = firstOperation!.apply(firstTerm!, secondTerm!);
         return _setAndReturnResult(result);
       }
     }
     if (!willRemoveSlave) {
-      final result = firstOperation.apply(firstTerm, slaveSolver.result());
+      final result = firstOperation!.apply(firstTerm!, slaveSolver!.result());
       return _setAndReturnResult(result);
     } else {
       _reduceSlave();
       _removeSlave();
-      secondTerm = tempPercentage != null ? tempPercentage : firstTerm;
+      secondTerm = tempPercentage ?? firstTerm;
       _removeTempPercentage();
-      final result = firstOperation.apply(firstTerm, secondTerm);
+      final result = firstOperation!.apply(firstTerm!, secondTerm!);
       return _setAndReturnResult(result);
     }
   }
@@ -327,16 +309,16 @@ class MasterSolver {
     firstTerm = null;
   }
 
-  void _reduceMaster([double newTerm]) {
-    firstTerm = firstOperation.apply(firstTerm, secondTerm);
+  void _reduceMaster([double? newTerm]) {
+    firstTerm = firstOperation!.apply(firstTerm!, secondTerm!);
     firstOperation = secondOperation;
     secondTerm = newTerm ?? firstTerm;
     secondOperation = null;
   }
 
-  void _reduceSlave([double newTerm]) {
-    secondTerm = slaveSolver.result();
-    firstTerm = firstOperation.apply(firstTerm, secondTerm);
+  void _reduceSlave([double? newTerm]) {
+    secondTerm = slaveSolver!.result();
+    firstTerm = firstOperation!.apply(firstTerm!, secondTerm!);
     firstOperation = secondOperation;
     secondTerm = newTerm ?? firstTerm;
     secondOperation = null;
@@ -357,8 +339,8 @@ class MasterSolver {
     resultRemembered = true;
     firstTerm = result;
     if (slaveSolver != null) {
-      firstOperation = slaveSolver.firstOperation;
-      secondTerm = slaveSolver.secondTerm;
+      firstOperation = slaveSolver!.firstOperation;
+      secondTerm = slaveSolver!.secondTerm;
       _removeSlave();
     }
     secondOperation = null;
@@ -369,19 +351,16 @@ class MasterSolver {
 class SlaveSolver {
   double firstTerm;
   Operation firstOperation;
-  double secondTerm;
-  Operation secondOperation;
-  double tempPercentage;
+  double? secondTerm;
+  Operation? secondOperation;
+  double? tempPercentage;
 
   SlaveSolver(this.firstTerm, this.firstOperation) {
-    assert(firstTerm != null && firstOperation != null);
     assert(firstOperation.hasPriority);
   }
 
   void addTerm(double term) {
-    if (tempPercentage != null) {
-      tempPercentage = null;
-    }
+    tempPercentage = null;
     if (secondTerm == null) {
       secondTerm = term;
       return;
@@ -395,9 +374,7 @@ class SlaveSolver {
 
   void addOperation(Operation op) {
     assert(op.hasPriority);
-    if (tempPercentage != null) {
-      tempPercentage = null;
-    }
+    tempPercentage = null;
     if (secondTerm == null) {
       firstOperation = op;
       return;
@@ -406,15 +383,13 @@ class SlaveSolver {
   }
 
   void changeSign() {
-    if (tempPercentage != null) {
-      tempPercentage = null;
-    }
+    tempPercentage = null;
     if (secondTerm == null) {
       secondTerm = -0;
       return;
     }
     if (secondOperation == null) {
-      secondTerm = -secondTerm;
+      secondTerm = -secondTerm!;
       return;
     }
     addTerm(-0);
@@ -422,7 +397,7 @@ class SlaveSolver {
 
   void applyPercentage() {
     if (tempPercentage != null) {
-      tempPercentage /= 100;
+      tempPercentage = tempPercentage! / 100;
     }
     if (secondTerm == null) {
       tempPercentage = _calculatePercentage(firstTerm, firstOperation);
@@ -432,58 +407,47 @@ class SlaveSolver {
       secondTerm = _calculatePercentage(firstTerm, firstOperation, secondTerm);
       return;
     }
-    final reducedTerm = firstOperation.apply(firstTerm, secondTerm);
-    tempPercentage = _calculatePercentage(reducedTerm, secondOperation);
+    final reducedTerm = firstOperation.apply(firstTerm, secondTerm!);
+    tempPercentage = _calculatePercentage(reducedTerm, secondOperation!);
   }
 
   void removeSpareOperation() {
-    if (tempPercentage != null) {
-      tempPercentage = null;
-    }
-    if (secondOperation == null) {
-      return;
-    }
+    tempPercentage = null;
+    if (secondOperation == null) return;
     secondOperation = null;
   }
 
   double preview({bool full = false}) {
-    if (tempPercentage != null) {
-      return tempPercentage;
-    }
-    if (secondTerm == null) {
-      return firstTerm;
-    }
-    if (secondOperation == null && !full) {
-      return secondTerm;
-    }
-    return firstOperation.apply(firstTerm, secondTerm);
+    if (tempPercentage != null) return tempPercentage!;
+    if (secondTerm == null) return firstTerm;
+    if (secondOperation == null && !full) return secondTerm!;
+    return firstOperation.apply(firstTerm, secondTerm!);
   }
 
   double result() {
     if (secondTerm == null) {
-      secondTerm = tempPercentage != null ? tempPercentage : firstTerm;
+      secondTerm = tempPercentage ?? firstTerm;
       tempPercentage = null;
-      return firstOperation.apply(firstTerm, secondTerm);
+      return firstOperation.apply(firstTerm, secondTerm!);
     }
     if (secondOperation == null) {
-      return firstOperation.apply(firstTerm, secondTerm);
+      return firstOperation.apply(firstTerm, secondTerm!);
     }
     _reduce();
-    secondTerm = tempPercentage != null ? tempPercentage : firstTerm;
+    secondTerm = tempPercentage ?? firstTerm;
     tempPercentage = null;
-    return firstOperation.apply(firstTerm, secondTerm);
+    return firstOperation.apply(firstTerm, secondTerm!);
   }
 
-  void _reduce([double newTerm]) {
-    firstTerm = firstOperation.apply(firstTerm, secondTerm);
-    firstOperation = secondOperation;
+  void _reduce([double? newTerm]) {
+    firstTerm = firstOperation.apply(firstTerm, secondTerm!);
+    firstOperation = secondOperation!;
     secondTerm = newTerm ?? firstTerm;
     secondOperation = null;
   }
 }
 
-double _calculatePercentage(double a, Operation op, [double b]) {
-  assert(a != null && op != null);
+double _calculatePercentage(double a, Operation op, [double? b]) {
   if (op.hasPriority) {
     return (b ?? a) / 100;
   } else {
